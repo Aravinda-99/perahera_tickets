@@ -1,6 +1,6 @@
 <?php
 require 'db_connect.php';
-include 'header.php';  
+require_once 'session.php';
 
 if (!isset($_SESSION['user_id'])) {
     header("Location: index.php");
@@ -20,30 +20,62 @@ if (!isset($_SESSION['user_id'])) {
         /* --- Navbar and Body Styles (පැරණි ඒවාමයි) --- */
         .navbar { 
             font-family: 'Noto Sans Sinhala', sans-serif;
-            background-color:rgb(65, 44, 38);
+            background-color:rgb(56, 42, 24);
             overflow: hidden; 
-            width: 100%;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            position: fixed;
-            top: 0;
-            left: 0;
-            z-index: 1000;
+            width: 90%;
+            max-width: 1200px;
+            margin: 20px auto;
+            position: relative;
             display: flex;
-            justify-content: center;
+            justify-content: space-between;
             align-items: center;
+            padding: 15px 30px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
         }
-        .navbar a { 
+        .navbar .logo {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .navbar .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #00bfff, #4169e1);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: white;
+            font-weight: bold;
+        }
+        .navbar .logo-text {
+            font-size: 18px;
+            font-weight: 600;
+            color: white;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        .navbar .nav-links {
+            display: flex;
+            gap: 5px;
+        }
+        .navbar .nav-links a { 
             display: block; 
             color: white; 
             text-align: center; 
-            padding: 14px 20px; 
+            padding: 10px 18px; 
             text-decoration: none; 
-            transition: background-color 0.3s, color 0.3s; 
-            margin: 0 10px;
+            transition: all 0.3s ease; 
+            border-radius: 15px;
+            font-weight: 500;
+            font-size: 14px;
         }
-        .navbar a:hover { 
-            background-color:rgb(90, 56, 34);
-            border-radius: 10px;
+        .navbar .nav-links a:hover,
+        .navbar .nav-links a.active { 
+            background-color: #345c6c;
             color: white; 
         }
         .navbar .right { 
@@ -61,7 +93,6 @@ if (!isset($_SESSION['user_id'])) {
             line-height: 1.6;
             margin: 0;
             min-height: 100vh;
-            padding-top: 60px;
         }
         .container {
             max-width: 900px;
@@ -199,14 +230,20 @@ if (!isset($_SESSION['user_id'])) {
 </head>
 <body>
     <div class="navbar">
-        <a href="index.php">Home</a>
-        <?php if (isset($_SESSION['user_id'])): ?>
-            <a href="profile.php">My Profile</a>
-            <a href="logout.php">Logout</a>
-        <?php else: ?>
-            <a href="login.php">Login</a>
-            <a href="signup.php">Signup</a>
-        <?php endif; ?>
+        <div class="logo">
+            <div class="logo-icon">LL</div>
+            <div class="logo-text">PERAHERA TICKETS</div>
+        </div>
+        <div class="nav-links">
+            <a href="index.php" class="active">Home</a>
+            <?php if (isset($_SESSION['user_id'])): ?>
+                <a href="profile.php">My Profile</a>
+                <a href="logout.php">Logout</a>
+            <?php else: ?>
+                <a href="login.php">Login</a>
+                <a href="signup.php">Signup</a>
+            <?php endif; ?>
+        </div>
     </div>
     
     <div class="container">
