@@ -44,7 +44,11 @@ $result = $stmt->get_result();
         /* Your CSS styles are correct, no changes needed here */
         body {
             font-family: 'Noto Sans Sinhala', sans-serif;
-            background-color: #FAF7F0;
+            background-image: url('assets/images/perahera2.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
             color: #333;
             line-height: 1.6;
             margin: 0;
