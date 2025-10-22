@@ -248,7 +248,7 @@ if (!isset($_SESSION['user_id'])) {
     
     <div class="container">
         <h2>Book Your Perahera Tickets</h2>
-        <form action="book_ticket.php" method="POST">
+         <form action="payment.php" method="POST">
             
             <div class="form-group" style="max-width: 400px; margin-left:auto; margin-right:auto;">
                 <label for="location">Select Location:</label>
@@ -296,7 +296,7 @@ if (!isset($_SESSION['user_id'])) {
                 <input type="text" id="phone" name="customer_phone" required>
             </div>
             
-            <button type="submit" id="submit-button" disabled>Book This Seat</button>
+            <button type="submit" id="submit-button" disabled>Proceed to Payment</button>
         </form>
     </div>
 
