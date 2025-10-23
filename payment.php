@@ -12,6 +12,9 @@ $location_id = $_POST['location_id'] ?? '';
 $seat_id = $_POST['seat_id'] ?? '';
 $customer_name = $_POST['customer_name'] ?? '';
 $customer_phone = $_POST['customer_phone'] ?? '';
+$referral_code = $_POST['referral_code'] ?? '';
+$discount_amount = $_POST['discount_amount'] ?? 0;
+$agent_name = $_POST['agent_name'] ?? '';
 
 // Validate required fields
 if (empty($location_id) || empty($seat_id) || empty($customer_name) || empty($customer_phone)) {
@@ -37,6 +40,10 @@ if ($result->num_rows === 0) {
 
 $booking_details = $result->fetch_assoc();
 $ticket_price = 35.00; // $35 per ticket
+$original_price = $ticket_price;
+$discount_percentage = floatval($discount_amount);
+$discount_value = ($ticket_price * $discount_percentage) / 100;
+$final_price = $ticket_price - $discount_value;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -200,9 +207,23 @@ $ticket_price = 35.00; // $35 per ticket
                 <span>Phone:</span>
                 <span><?php echo htmlspecialchars($customer_phone); ?></span>
             </div>
+            <?php if (!empty($referral_code) && $discount_percentage > 0): ?>
             <div class="summary-row">
-                <span>Ticket Price:</span>
-                <span>$<?php echo number_format($ticket_price, 2); ?></span>
+                <span>Referral Code:</span>
+                <span><?php echo htmlspecialchars($referral_code); ?> (<?php echo htmlspecialchars($agent_name); ?>)</span>
+            </div>
+            <div class="summary-row">
+                <span>Original Price:</span>
+                <span>$<?php echo number_format($original_price, 2); ?></span>
+            </div>
+            <div class="summary-row" style="color: #27ae60;">
+                <span>Discount (<?php echo $discount_percentage; ?>%):</span>
+                <span>-$<?php echo number_format($discount_value, 2); ?></span>
+            </div>
+            <?php endif; ?>
+            <div class="summary-row">
+                <span><?php echo ($discount_percentage > 0) ? 'Final Price:' : 'Ticket Price:'; ?></span>
+                <span>$<?php echo number_format($final_price, 2); ?></span>
             </div>
         </div>
 
@@ -212,7 +233,10 @@ $ticket_price = 35.00; // $35 per ticket
             <input type="hidden" name="seat_id" value="<?php echo htmlspecialchars($seat_id); ?>">
             <input type="hidden" name="customer_name" value="<?php echo htmlspecialchars($customer_name); ?>">
             <input type="hidden" name="customer_phone" value="<?php echo htmlspecialchars($customer_phone); ?>">
-            <input type="hidden" name="ticket_price" value="<?php echo $ticket_price; ?>">
+            <input type="hidden" name="ticket_price" value="<?php echo $final_price; ?>">
+            <input type="hidden" name="referral_code" value="<?php echo htmlspecialchars($referral_code); ?>">
+            <input type="hidden" name="discount_amount" value="<?php echo $discount_amount; ?>">
+            <input type="hidden" name="agent_name" value="<?php echo htmlspecialchars($agent_name); ?>">
 
             <div class="form-group">
                 <label for="card_number">Card Number:</label>
@@ -258,7 +282,7 @@ $ticket_price = 35.00; // $35 per ticket
             </div>
 
             <button type="submit" class="payment-button" id="pay-button">
-                💳 Pay $<?php echo number_format($ticket_price, 2); ?>
+                💳 Pay $<?php echo number_format($final_price, 2); ?>
             </button>
         </form>
 

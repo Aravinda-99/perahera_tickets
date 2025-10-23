@@ -13,6 +13,9 @@ $seat_id = $_POST['seat_id'] ?? '';
 $customer_name = $_POST['customer_name'] ?? '';
 $customer_phone = $_POST['customer_phone'] ?? '';
 $ticket_price = $_POST['ticket_price'] ?? 35.00;
+$referral_code = $_POST['referral_code'] ?? '';
+$discount_amount = $_POST['discount_amount'] ?? 0;
+$agent_name = $_POST['agent_name'] ?? '';
 $card_number = $_POST['card_number'] ?? '';
 $cardholder_name = $_POST['cardholder_name'] ?? '';
 $expiry_month = $_POST['expiry_month'] ?? '';
@@ -59,18 +62,29 @@ if ($payment_success) {
         // Generate reference number
         $reference_number = 'PERA-' . date('Y') . '-' . date('m') . '-' . str_pad(rand(1, 9999999), 7, '0', STR_PAD_LEFT);
         
-        // Insert booking
+        // Insert booking (without payment info)
         $stmt = $conn->prepare("
-            INSERT INTO bookings (user_id, seat_id, customer_name, customer_phone, customer_email, reference_number, booking_time, payment_status, amount_paid) 
-            VALUES (?, ?, ?, ?, ?, ?, NOW(), 'completed', ?)
+            INSERT INTO bookings (user_id, seat_id, customer_name, customer_phone, customer_email, reference_number, booking_time) 
+            VALUES (?, ?, ?, ?, ?, ?, NOW())
         ");
-        $stmt->bind_param("iissssd", $_SESSION['user_id'], $seat_id, $customer_name, $customer_phone, $email, $reference_number, $ticket_price);
+        $stmt->bind_param("iissss", $_SESSION['user_id'], $seat_id, $customer_name, $customer_phone, $email, $reference_number);
         $stmt->execute();
         
-        // Update seat status to booked
-        $stmt2 = $conn->prepare("UPDATE seats SET status = 'booked' WHERE id = ?");
-        $stmt2->bind_param("i", $seat_id);
+        // Get the booking ID
+        $booking_id = $conn->insert_id;
+        
+        // Insert payment record
+        $stmt2 = $conn->prepare("
+            INSERT INTO payments (booking_id, user_id, payment_status, amount_paid, referral_code, agent_name, discount_amount, payment_date) 
+            VALUES (?, ?, 'completed', ?, ?, ?, ?, NOW())
+        ");
+        $stmt2->bind_param("iidssd", $booking_id, $_SESSION['user_id'], $ticket_price, $referral_code, $agent_name, $discount_amount);
         $stmt2->execute();
+        
+        // Update seat status to booked
+        $stmt3 = $conn->prepare("UPDATE seats SET status = 'booked' WHERE id = ?");
+        $stmt3->bind_param("i", $seat_id);
+        $stmt3->execute();
         
         $conn->commit();
         

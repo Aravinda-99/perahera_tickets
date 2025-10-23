@@ -17,7 +17,7 @@ if (!isset($_SESSION['user_id'])) {
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        /* --- Navbar and Body Styles (පැරණි ඒවාමයි) --- */
+      
         .navbar { 
             font-family: 'Noto Sans Sinhala', sans-serif;
             background-color:rgb(56, 42, 24);
@@ -296,6 +296,12 @@ if (!isset($_SESSION['user_id'])) {
                 <input type="text" id="phone" name="customer_phone" required>
             </div>
             
+            <div class="form-group" style="max-width: 400px; margin-left:auto; margin-right:auto;">
+                <label for="referral_code">Referral Code (Optional):</label>
+                <input type="text" id="referral_code" name="referral_code" placeholder="Enter agent code for discount">
+                <small style="color: #666; font-size: 12px; display: block; margin-top: 5px;">Enter an agent code to get a discount on your ticket</small>
+            </div>
+            
             <button type="submit" id="submit-button" disabled>Proceed to Payment</button>
         </form>
     </div>
@@ -307,12 +313,59 @@ if (!isset($_SESSION['user_id'])) {
         const mapContainer = document.getElementById('seat-map-container');
         const hiddenInput = document.getElementById('selected_seat_id');
         const submitButton = document.getElementById('submit-button');
+        const referralCodeInput = document.getElementById('referral_code');
+        
+        // Store discount information
+        let currentDiscount = 0;
+        let agentName = '';
+        
+        // Referral code validation
+        referralCodeInput.addEventListener('input', function() {
+            const referralCode = this.value.trim();
+            
+            if (referralCode.length > 0) {
+                // Validate referral code with server
+                fetch('validate_referral.php?code=' + encodeURIComponent(referralCode))
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.valid) {
+                            currentDiscount = data.discount;
+                            agentName = data.agent_name;
+                            this.style.borderColor = '#27ae60';
+                            this.style.backgroundColor = '#d5f4e6';
+                            
+                            // Show discount info
+                            showDiscountInfo(data.discount, data.agent_name);
+                        } else {
+                            currentDiscount = 0;
+                            agentName = '';
+                            this.style.borderColor = '#e74c3c';
+                            this.style.backgroundColor = '#fdf2f2';
+                            hideDiscountInfo();
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error validating referral code:', error);
+                        currentDiscount = 0;
+                        agentName = '';
+                        this.style.borderColor = '#e74c3c';
+                        this.style.backgroundColor = '#fdf2f2';
+                        hideDiscountInfo();
+                    });
+            } else {
+                currentDiscount = 0;
+                agentName = '';
+                this.style.borderColor = '#ddd';
+                this.style.backgroundColor = 'white';
+                hideDiscountInfo();
+            }
+        });
 
-        // 1. Location එක select කරාම
+        
         locationSelect.addEventListener('change', function() {
             const locationId = this.value;
             
-            // පරණ දේවල් reset කරනවා
+           
             mapContainer.innerHTML = '<p>Loading seats...</p>';
             hiddenInput.value = '';
             submitButton.disabled = true;
@@ -320,7 +373,7 @@ if (!isset($_SESSION['user_id'])) {
             if (locationId) {
                 seatMapArea.style.display = 'block'; // Seat map එක පෙන්වනවා
                 
-                // 'get_seats.php' file එකෙන් data ගේනවා
+               
                 fetch('get_seats.php?location_id=' + locationId)
                     .then(response => response.json())
                     .then(seats => {
@@ -380,6 +433,60 @@ if (!isset($_SESSION['user_id'])) {
                     submitButton.disabled = false;
                 }
             }
+        });
+        
+        // Functions to show/hide discount info
+        function showDiscountInfo(discount, agentName) {
+            // Remove existing discount info if any
+            hideDiscountInfo();
+            
+            const discountDiv = document.createElement('div');
+            discountDiv.id = 'discount-info';
+            discountDiv.style.cssText = `
+                background: #d5f4e6;
+                border: 1px solid #27ae60;
+                border-radius: 8px;
+                padding: 15px;
+                margin: 10px auto;
+                max-width: 400px;
+                text-align: center;
+                color: #27ae60;
+                font-weight: 600;
+            `;
+            discountDiv.innerHTML = `
+                <div style="font-size: 18px; margin-bottom: 5px;">🎉 Discount Applied!</div>
+                <div>Agent: ${agentName}</div>
+                <div>Discount: ${discount}% off</div>
+                <div style="font-size: 14px; margin-top: 5px; color: #666;">
+                    Your ticket price will be reduced by ${discount}%
+                </div>
+            `;
+            
+            referralCodeInput.parentNode.insertBefore(discountDiv, referralCodeInput.nextSibling);
+        }
+        
+        function hideDiscountInfo() {
+            const existingInfo = document.getElementById('discount-info');
+            if (existingInfo) {
+                existingInfo.remove();
+            }
+        }
+        
+        // Update form submission to include discount info
+        document.querySelector('form').addEventListener('submit', function(e) {
+            // Add hidden fields for discount info
+            const discountInput = document.createElement('input');
+            discountInput.type = 'hidden';
+            discountInput.name = 'discount_amount';
+            discountInput.value = currentDiscount;
+            
+            const agentInput = document.createElement('input');
+            agentInput.type = 'hidden';
+            agentInput.name = 'agent_name';
+            agentInput.value = agentName;
+            
+            this.appendChild(discountInput);
+            this.appendChild(agentInput);
         });
     </script>
 </body>
