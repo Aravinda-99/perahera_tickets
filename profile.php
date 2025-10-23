@@ -12,20 +12,27 @@ if (!isset($_SESSION['user_id'])) {
 $user_id = $_SESSION['user_id'];
 
 // *** වෙනස් කරන ලද SQL QUERY එක ***
-// Fetch user's bookings from the database
-// We JOIN bookings -> seats -> locations
+// Fetch user's bookings from the database with payment information
+// We JOIN bookings -> seats -> locations -> payments
 $stmt = $conn->prepare(
     "SELECT 
         b.reference_number, 
         b.booking_time, 
         l.name AS location_name,
-        s.seat_number 
+        s.seat_number,
+        p.payment_status,
+        p.amount_paid,
+        p.referral_code,
+        p.agent_name,
+        p.discount_amount
      FROM 
         bookings b 
      JOIN 
         seats s ON b.seat_id = s.id
      JOIN 
         locations l ON s.location_id = l.id 
+     LEFT JOIN
+        payments p ON b.id = p.booking_id
      WHERE 
         b.user_id = ? 
      ORDER BY 

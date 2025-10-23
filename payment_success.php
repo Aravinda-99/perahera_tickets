@@ -14,15 +14,22 @@ if (empty($reference_number)) {
     exit();
 }
 
-// Get booking details
+// Get booking details with payment information
 $stmt = $conn->prepare("
     SELECT 
         b.*,
         l.name as location_name,
-        s.seat_number
+        s.seat_number,
+        p.payment_status,
+        p.amount_paid,
+        p.referral_code,
+        p.agent_name,
+        p.discount_amount,
+        p.payment_date
     FROM bookings b
     JOIN seats s ON b.seat_id = s.id
     JOIN locations l ON s.location_id = l.id
+    LEFT JOIN payments p ON b.id = p.booking_id
     WHERE b.reference_number = ? AND b.user_id = ?
 ");
 $stmt->bind_param("si", $reference_number, $_SESSION['user_id']);
@@ -223,7 +230,26 @@ $booking = $result->fetch_assoc();
                     <div class="detail-label">Booking Date</div>
                     <div class="detail-value"><?php echo date('M d, Y', strtotime($booking['booking_time'])); ?></div>
                 </div>
+                <?php if (!empty($booking['referral_code']) && $booking['discount_amount'] > 0): ?>
+                <div class="detail-item">
+                    <div class="detail-label">Referral Code</div>
+                    <div class="detail-value"><?php echo htmlspecialchars($booking['referral_code']); ?></div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Agent</div>
+                    <div class="detail-value"><?php echo htmlspecialchars($booking['agent_name']); ?></div>
+                </div>
+                <?php endif; ?>
             </div>
+            
+            <?php if (!empty($booking['referral_code']) && $booking['discount_amount'] > 0): ?>
+            <div class="discount-info" style="background: #d5f4e6; padding: 15px; border-radius: 8px; margin: 15px 0; text-align: center; border: 1px solid #27ae60;">
+                <div style="color: #27ae60; font-weight: 600; font-size: 16px;">Discount Applied!</div>
+                <div style="color: #27ae60; font-size: 14px; margin-top: 5px;">
+                    You saved <?php echo $booking['discount_amount']; ?>% with referral code: <?php echo htmlspecialchars($booking['referral_code']); ?>
+                </div>
+            </div>
+            <?php endif; ?>
             
             <div class="amount-paid">
                 <div class="amount-label">Amount Paid</div>
