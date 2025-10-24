@@ -9,7 +9,7 @@ if (!isset($_SESSION['user_id'])) {
 
 // Get payment data
 $location_id = $_POST['location_id'] ?? '';
-$seat_id = $_POST['seat_id'] ?? '';
+$selected_seats_data = $_POST['selected_seats'] ?? '';
 $customer_name = $_POST['customer_name'] ?? '';
 $customer_phone = $_POST['customer_phone'] ?? '';
 $ticket_price = $_POST['ticket_price'] ?? 35.00;
@@ -23,8 +23,15 @@ $expiry_year = $_POST['expiry_year'] ?? '';
 $cvv = $_POST['cvv'] ?? '';
 $email = $_POST['email'] ?? '';
 
+// Parse selected seats
+$selected_seats = json_decode($selected_seats_data, true);
+if (!$selected_seats || !is_array($selected_seats) || empty($selected_seats)) {
+    header("Location: booking_form.php");
+    exit();
+}
+
 // Validate required fields
-if (empty($seat_id) || empty($customer_name) || empty($customer_phone)) {
+if (empty($customer_name) || empty($customer_phone)) {
     header("Location: booking_form.php");
     exit();
 }
@@ -59,42 +66,123 @@ if ($payment_success) {
     try {
         $conn->begin_transaction();
         
-        // Generate reference number
-        $reference_number = 'PERA-' . date('Y') . '-' . date('m') . '-' . str_pad(rand(1, 9999999), 7, '0', STR_PAD_LEFT);
+        // Generate unique reference number for each seat
+        $reference_number_base = 'PERA-' . date('Y') . '-' . date('m') . '-' . str_pad(rand(1, 9999999), 7, '0', STR_PAD_LEFT);
         
-        // Insert booking (without payment info)
-        $stmt = $conn->prepare("
-            INSERT INTO bookings (user_id, seat_id, customer_name, customer_phone, customer_email, reference_number, booking_time) 
-            VALUES (?, ?, ?, ?, ?, ?, NOW())
-        ");
-        $stmt->bind_param("iissss", $_SESSION['user_id'], $seat_id, $customer_name, $customer_phone, $email, $reference_number);
-        $stmt->execute();
+        // Insert bookings for each seat
+        $booking_ids = [];
+        foreach ($selected_seats as $index => $seat) {
+            $seat_number = $seat['number'];
+            $location_id_int = intval($location_id);
+            
+            // First, ensure the seat exists in the database
+            $stmt_check = $conn->prepare("SELECT id FROM seats WHERE location_id = ? AND seat_number = ?");
+            $stmt_check->bind_param("is", $location_id_int, $seat_number);
+            $stmt_check->execute();
+            $result = $stmt_check->get_result();
+            
+            if ($result->num_rows > 0) {
+                // Seat exists, get its ID
+                $seat_data = $result->fetch_assoc();
+                $seat_id = $seat_data['id'];
+            } else {
+                // Seat doesn't exist, create it
+                $stmt_create = $conn->prepare("INSERT INTO seats (location_id, seat_number, status) VALUES (?, ?, 'available')");
+                $stmt_create->bind_param("is", $location_id_int, $seat_number);
+                if (!$stmt_create->execute()) {
+                    throw new Exception("Failed to create seat " . $seat_number . ": " . $stmt_create->error);
+                }
+                $seat_id = $conn->insert_id;
+                $stmt_create->close();
+            }
+            $stmt_check->close();
+            
+            // Create unique reference number for each seat
+            $reference_number = $reference_number_base . '-' . ($index + 1);
+            
+            $stmt = $conn->prepare("
+                INSERT INTO bookings (user_id, seat_id, customer_name, customer_phone, customer_email, reference_number, booking_time) 
+                VALUES (?, ?, ?, ?, ?, ?, NOW())
+            ");
+            $stmt->bind_param("iissss", $_SESSION['user_id'], $seat_id, $customer_name, $customer_phone, $email, $reference_number);
+            
+            if (!$stmt->execute()) {
+                throw new Exception("Failed to insert booking for seat " . $seat_number . ": " . $stmt->error);
+            }
+            
+            $booking_ids[] = $conn->insert_id;
+            $stmt->close();
+        }
         
-        // Get the booking ID
-        $booking_id = $conn->insert_id;
+        // Insert payment record (one payment for all seats)
+        if (empty($booking_ids)) {
+            throw new Exception("No booking IDs generated - cannot create payment record");
+        }
         
-        // Insert payment record
+        // Verify the booking_id exists before creating payment
+        $stmt_check_booking = $conn->prepare("SELECT id FROM bookings WHERE id = ?");
+        $stmt_check_booking->bind_param("i", $booking_ids[0]);
+        $stmt_check_booking->execute();
+        $result_check = $stmt_check_booking->get_result();
+        
+        if ($result_check->num_rows === 0) {
+            throw new Exception("Booking ID " . $booking_ids[0] . " does not exist in bookings table");
+        }
+        $stmt_check_booking->close();
+        
         $stmt2 = $conn->prepare("
             INSERT INTO payments (booking_id, user_id, payment_status, amount_paid, referral_code, agent_name, discount_amount, payment_date) 
             VALUES (?, ?, 'completed', ?, ?, ?, ?, NOW())
         ");
-        $stmt2->bind_param("iidssd", $booking_id, $_SESSION['user_id'], $ticket_price, $referral_code, $agent_name, $discount_amount);
-        $stmt2->execute();
+        $stmt2->bind_param("iidssd", $booking_ids[0], $_SESSION['user_id'], $ticket_price, $referral_code, $agent_name, $discount_amount);
         
-        // Update seat status to booked
-        $stmt3 = $conn->prepare("UPDATE seats SET status = 'booked' WHERE id = ?");
-        $stmt3->bind_param("i", $seat_id);
-        $stmt3->execute();
+        if (!$stmt2->execute()) {
+            throw new Exception("Failed to insert payment record: " . $stmt2->error);
+        }
+        $stmt2->close();
+        
+        // Update all seat statuses to booked
+        $seat_numbers = array_column($selected_seats, 'number');
+        if (count($seat_numbers) > 0) {
+            $placeholders = str_repeat('?,', count($seat_numbers) - 1) . '?';
+            $stmt3 = $conn->prepare("UPDATE seats SET status = 'booked' WHERE location_id = ? AND seat_number IN ($placeholders)");
+            $params = array_merge([$location_id_int], $seat_numbers);
+            $stmt3->bind_param(str_repeat('s', count($params)), ...$params);
+            
+            if (!$stmt3->execute()) {
+                throw new Exception("Failed to update seat statuses: " . $stmt3->error);
+            }
+            
+            if ($stmt3->affected_rows !== count($seat_numbers)) {
+                throw new Exception("Expected to update " . count($seat_numbers) . " seats, but only updated " . $stmt3->affected_rows);
+            }
+            
+            $stmt3->close();
+        }
+        
+        // Decrement ref_count if referral code was used
+        if (!empty($referral_code)) {
+            $stmt4 = $conn->prepare("UPDATE agent SET ref_count = ref_count - 1 WHERE ag_code = ? AND ref_count > 0");
+            $stmt4->bind_param("s", $referral_code);
+            $stmt4->execute();
+            
+            if ($stmt4->affected_rows === 0) {
+                // This shouldn't happen if validation worked, but just in case
+                error_log("Warning: Could not decrement ref_count for referral code: " . $referral_code);
+            }
+            $stmt4->close();
+        }
         
         $conn->commit();
         
         // Redirect to success page
-        header("Location: payment_success.php?ref=" . urlencode($reference_number));
+        header("Location: payment_success.php?ref=" . urlencode($reference_number_base));
         exit();
         
     } catch (Exception $e) {
         $conn->rollback();
-        $payment_error = 'Booking failed. Please try again.';
+        error_log("Booking error: " . $e->getMessage());
+        $payment_error = 'Booking failed: ' . $e->getMessage();
     }
 }
 
