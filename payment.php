@@ -9,27 +9,33 @@ if (!isset($_SESSION['user_id'])) {
 
 // Get booking details from POST data
 $location_id = $_POST['location_id'] ?? '';
-$seat_id = $_POST['seat_id'] ?? '';
+$selected_seats_data = $_POST['selected_seats'] ?? '';
 $customer_name = $_POST['customer_name'] ?? '';
 $customer_phone = $_POST['customer_phone'] ?? '';
 $referral_code = $_POST['referral_code'] ?? '';
 $discount_amount = $_POST['discount_amount'] ?? 0;
 $agent_name = $_POST['agent_name'] ?? '';
 
+// Parse selected seats
+$selected_seats = json_decode($selected_seats_data, true);
+if (!$selected_seats || !is_array($selected_seats) || empty($selected_seats)) {
+    header("Location: booking_form.php");
+    exit();
+}
+
 // Validate required fields
-if (empty($location_id) || empty($seat_id) || empty($customer_name) || empty($customer_phone)) {
+if (empty($location_id) || empty($customer_name) || empty($customer_phone)) {
     header("Location: booking_form.php");
     exit();
 }
 
 // Get location and seat details
-$stmt = $conn->prepare("
-    SELECT l.name as location_name, s.seat_number 
-    FROM locations l 
-    JOIN seats s ON l.id = s.location_id 
-    WHERE l.id = ? AND s.id = ?
-");
-$stmt->bind_param("ii", $location_id, $seat_id);
+$seat_numbers = array_column($selected_seats, 'number');
+$location_id_int = intval($location_id);
+
+// Get location name
+$stmt = $conn->prepare("SELECT name FROM locations WHERE id = ?");
+$stmt->bind_param("i", $location_id_int);
 $stmt->execute();
 $result = $stmt->get_result();
 
@@ -38,12 +44,47 @@ if ($result->num_rows === 0) {
     exit();
 }
 
-$booking_details = $result->fetch_assoc();
+$location_data = $result->fetch_assoc();
+$location_name = $location_data['name'];
+$stmt->close();
+
+// Validate that all seat numbers exist in the seats table for this location
+$placeholders = str_repeat('?,', count($seat_numbers) - 1) . '?';
+$stmt = $conn->prepare("
+    SELECT seat_number 
+    FROM seats 
+    WHERE location_id = ? AND seat_number IN ($placeholders)
+");
+$params = array_merge([$location_id_int], $seat_numbers);
+$stmt->bind_param(str_repeat('s', count($params)), ...$params);
+$stmt->execute();
+$result = $stmt->get_result();
+
+$existing_seats = [];
+while($row = $result->fetch_assoc()) {
+    $existing_seats[] = $row['seat_number'];
+}
+$stmt->close();
+
+// Check if all selected seats exist in database
+$missing_seats = array_diff($seat_numbers, $existing_seats);
+if (!empty($missing_seats)) {
+    // Some seats don't exist in database, we need to create them
+    $stmt = $conn->prepare("INSERT INTO seats (location_id, seat_number, status) VALUES (?, ?, 'available')");
+    foreach($missing_seats as $seat_number) {
+        $stmt->bind_param("is", $location_id_int, $seat_number);
+        $stmt->execute();
+    }
+    $stmt->close();
+}
+
+$total_seats = count($selected_seats);
+
 $ticket_price = 35.00; // $35 per ticket
-$original_price = $ticket_price;
+$original_price = $ticket_price * $total_seats;
 $discount_percentage = floatval($discount_amount);
-$discount_value = ($ticket_price * $discount_percentage) / 100;
-$final_price = $ticket_price - $discount_value;
+$discount_value = ($original_price * $discount_percentage) / 100;
+$final_price = $original_price - $discount_value;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -193,11 +234,15 @@ $final_price = $ticket_price - $discount_value;
             <h3>Booking Summary</h3>
             <div class="summary-row">
                 <span>Location:</span>
-                <span><?php echo htmlspecialchars($booking_details['location_name']); ?></span>
+                <span><?php echo htmlspecialchars($location_name); ?></span>
             </div>
             <div class="summary-row">
-                <span>Seat Number:</span>
-                <span><?php echo htmlspecialchars($booking_details['seat_number']); ?></span>
+                <span>Seat Numbers:</span>
+                <span><?php echo htmlspecialchars(implode(', ', $seat_numbers)); ?></span>
+            </div>
+            <div class="summary-row">
+                <span>Total Seats:</span>
+                <span><?php echo $total_seats; ?></span>
             </div>
             <div class="summary-row">
                 <span>Customer Name:</span>
@@ -230,7 +275,7 @@ $final_price = $ticket_price - $discount_value;
         <form action="process_payment.php" method="POST" id="payment-form">
             <!-- Hidden fields to pass booking data -->
             <input type="hidden" name="location_id" value="<?php echo htmlspecialchars($location_id); ?>">
-            <input type="hidden" name="seat_id" value="<?php echo htmlspecialchars($seat_id); ?>">
+            <input type="hidden" name="selected_seats" value="<?php echo htmlspecialchars($selected_seats_data); ?>">
             <input type="hidden" name="customer_name" value="<?php echo htmlspecialchars($customer_name); ?>">
             <input type="hidden" name="customer_phone" value="<?php echo htmlspecialchars($customer_phone); ?>">
             <input type="hidden" name="ticket_price" value="<?php echo $final_price; ?>">

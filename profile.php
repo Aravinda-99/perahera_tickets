@@ -59,7 +59,7 @@ $result = $stmt->get_result();
             color: #333;
             line-height: 1.6;
             margin: 0;
-            padding: 20px 0; /* Add some padding for top and bottom */
+            padding: 0; /* Remove all padding */
         }
         .container {
             max-width: 800px;
@@ -79,6 +79,7 @@ $result = $stmt->get_result();
             border-bottom: 2px solid #f0f0f0;
             padding-bottom: 10px;
             margin-bottom: 20px;
+            text-align: center;
         }
         .profile-info {
             font-size: 1.1em;

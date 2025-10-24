@@ -15,6 +15,10 @@ if (empty($reference_number)) {
 }
 
 // Get booking details with payment information
+// The reference_number from URL is the base reference (e.g., PERA-2025-10-2135490)
+// We need to find all bookings that start with this base reference
+$base_reference = $reference_number;
+
 $stmt = $conn->prepare("
     SELECT 
         b.*,
@@ -30,9 +34,11 @@ $stmt = $conn->prepare("
     JOIN seats s ON b.seat_id = s.id
     JOIN locations l ON s.location_id = l.id
     LEFT JOIN payments p ON b.id = p.booking_id
-    WHERE b.reference_number = ? AND b.user_id = ?
+    WHERE b.reference_number LIKE ? AND b.user_id = ?
+    ORDER BY b.reference_number
 ");
-$stmt->bind_param("si", $reference_number, $_SESSION['user_id']);
+$like_pattern = $base_reference . '%';
+$stmt->bind_param("si", $like_pattern, $_SESSION['user_id']);
 $stmt->execute();
 $result = $stmt->get_result();
 
@@ -41,7 +47,13 @@ if ($result->num_rows === 0) {
     exit();
 }
 
-$booking = $result->fetch_assoc();
+$bookings = [];
+while ($row = $result->fetch_assoc()) {
+    $bookings[] = $row;
+}
+
+// Get the first booking for payment details (they should all be the same)
+$first_booking = $bookings[0];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -201,65 +213,88 @@ $booking = $result->fetch_assoc();
         
         <div class="ticket-card">
             <div class="ticket-header">
-                <div class="ticket-title">PERAHERA TICKET</div>
-                <div class="reference-number"><?php echo htmlspecialchars($booking['reference_number']); ?></div>
+                <div class="ticket-title">PERAHERA TICKET<?php echo count($bookings) > 1 ? 'S' : ''; ?></div>
+                <div style="font-size: 18px; font-weight: 600; color: #2c3e50; margin-top: 10px;">
+                    <?php echo count($bookings); ?> Seat<?php echo count($bookings) > 1 ? 's' : ''; ?> Selected
+                </div>
             </div>
             
             <div class="ticket-details">
                 <div class="detail-item">
                     <div class="detail-label">Location</div>
-                    <div class="detail-value"><?php echo htmlspecialchars($booking['location_name']); ?></div>
+                    <div class="detail-value"><?php echo htmlspecialchars($first_booking['location_name']); ?></div>
                 </div>
                 <div class="detail-item">
-                    <div class="detail-label">Seat Number</div>
-                    <div class="detail-value"><?php echo htmlspecialchars($booking['seat_number']); ?></div>
+                    <div class="detail-label">Selected Seat<?php echo count($bookings) > 1 ? 's' : ''; ?></div>
+                    <div class="detail-value">
+                        <?php 
+                        $seat_numbers = array_column($bookings, 'seat_number');
+                        echo htmlspecialchars(implode(', ', $seat_numbers)); 
+                        ?>
+                    </div>
                 </div>
                 <div class="detail-item">
                     <div class="detail-label">Customer Name</div>
-                    <div class="detail-value"><?php echo htmlspecialchars($booking['customer_name']); ?></div>
+                    <div class="detail-value"><?php echo htmlspecialchars($first_booking['customer_name']); ?></div>
                 </div>
                 <div class="detail-item">
                     <div class="detail-label">Phone</div>
-                    <div class="detail-value"><?php echo htmlspecialchars($booking['customer_phone']); ?></div>
+                    <div class="detail-value"><?php echo htmlspecialchars($first_booking['customer_phone']); ?></div>
                 </div>
                 <div class="detail-item">
                     <div class="detail-label">Email</div>
-                    <div class="detail-value"><?php echo htmlspecialchars($booking['customer_email']); ?></div>
+                    <div class="detail-value"><?php echo htmlspecialchars($first_booking['customer_email']); ?></div>
                 </div>
                 <div class="detail-item">
                     <div class="detail-label">Booking Date</div>
-                    <div class="detail-value"><?php echo date('M d, Y', strtotime($booking['booking_time'])); ?></div>
+                    <div class="detail-value"><?php echo date('M d, Y', strtotime($first_booking['booking_time'])); ?></div>
                 </div>
-                <?php if (!empty($booking['referral_code']) && $booking['discount_amount'] > 0): ?>
+                <?php if (!empty($first_booking['referral_code']) && $first_booking['discount_amount'] > 0): ?>
                 <div class="detail-item">
-                    <div class="detail-label">Referral Code</div>
-                    <div class="detail-value"><?php echo htmlspecialchars($booking['referral_code']); ?></div>
+                    <div class="detail-label">Agent Code</div>
+                    <div class="detail-value" style="font-weight: bold; color: #27ae60;">
+                        <?php echo htmlspecialchars($first_booking['referral_code']); ?>
+                    </div>
                 </div>
                 <div class="detail-item">
-                    <div class="detail-label">Agent</div>
-                    <div class="detail-value"><?php echo htmlspecialchars($booking['agent_name']); ?></div>
+                    <div class="detail-label">Agent Name</div>
+                    <div class="detail-value" style="font-weight: bold; color: #27ae60;">
+                        <?php echo htmlspecialchars($first_booking['agent_name']); ?>
+                    </div>
                 </div>
                 <?php endif; ?>
             </div>
             
-            <?php if (!empty($booking['referral_code']) && $booking['discount_amount'] > 0): ?>
+            <?php if (!empty($first_booking['referral_code']) && $first_booking['discount_amount'] > 0): ?>
             <div class="discount-info" style="background: #d5f4e6; padding: 15px; border-radius: 8px; margin: 15px 0; text-align: center; border: 1px solid #27ae60;">
                 <div style="color: #27ae60; font-weight: 600; font-size: 16px;">Discount Applied!</div>
                 <div style="color: #27ae60; font-size: 14px; margin-top: 5px;">
-                    You saved <?php echo $booking['discount_amount']; ?>% with referral code: <?php echo htmlspecialchars($booking['referral_code']); ?>
+                    You saved <?php echo $first_booking['discount_amount']; ?>% with referral code: <?php echo htmlspecialchars($first_booking['referral_code']); ?>
                 </div>
             </div>
             <?php endif; ?>
             
             <div class="amount-paid">
-                <div class="amount-label">Amount Paid</div>
-                <div class="amount-value">$<?php echo number_format($booking['amount_paid'], 2); ?></div>
+                <div class="amount-label">Total Amount Paid</div>
+                <div class="amount-value">$<?php echo number_format($first_booking['amount_paid'], 2); ?></div>
+                <?php if (count($bookings) > 1): ?>
+                <div style="font-size: 14px; color: #666; margin-top: 8px;">
+                    For <?php echo count($bookings); ?> selected seat<?php echo count($bookings) > 1 ? 's' : ''; ?>
+                </div>
+                <div style="font-size: 12px; color: #888; margin-top: 3px;">
+                    $<?php echo number_format($first_booking['amount_paid'] / count($bookings), 2); ?> per seat
+                </div>
+                <?php else: ?>
+                <div style="font-size: 14px; color: #666; margin-top: 8px;">
+                    For 1 selected seat
+                </div>
+                <?php endif; ?>
             </div>
         </div>
         
         <div class="button-group">
-            <a href="ticket.php?ref=<?php echo urlencode($booking['reference_number']); ?>" class="btn btn-primary" target="_blank">
-                 View Ticket
+            <a href="index.php" class="btn btn-primary">
+                 Home
             </a>
             <a href="profile.php" class="btn btn-secondary">
                  My Bookings
@@ -267,7 +302,7 @@ $booking = $result->fetch_assoc();
         </div>
         
         <p style="margin-top: 30px; color:rgb(174, 115, 39); font-weight: 600;">
-            ✔ Your ticket has been successfully booked and payment processed!
+            ✔ Your ticket<?php echo count($bookings) > 1 ? 's have' : ' has'; ?> been successfully booked and payment processed!
         </p>
     </div>
 
