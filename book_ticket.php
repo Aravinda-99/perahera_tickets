@@ -60,7 +60,29 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             
             // Use the details we just fetched for the reference number
             $reference_number = "PERA-" . $location_id_from_db . "-" . $seat_number_text . "-" . time();
-            $qr_code_path = ""; // QR code generation will be added later
+            
+            // Generate QR code for user_bookings.php (one QR per user showing all bookings)
+            require_once('lib/phpqrcode/qrlib.php');
+            
+            // Create QR code directory if it doesn't exist
+            $qr_dir = 'assets/qrcodes/';
+            if (!file_exists($qr_dir)) {
+                mkdir($qr_dir, 0777, true);
+            }
+            
+            // Generate unique QR code for the user (one QR for all bookings)
+            $qr_filename = 'qr_user_' . $user_id . '.png';
+            $qr_path = $qr_dir . $qr_filename;
+            
+            // URL for viewing all bookings - Use production server URL
+            $bookings_url = 'https://testing.sltdigitalweb.lk/perahera_tickets/user_bookings.php?user_id=' . $user_id;
+            
+            // Generate QR code only if it doesn't exist (one QR per user)
+            if (!file_exists($qr_path)) {
+                QRcode::png($bookings_url, $qr_path);
+            }
+            
+            $qr_code_path = $qr_path;
 
             // **RECOMMENDED INSERT QUERY:**
             // Inserting the 'seat_id' (Foreign Key) into the 'bookings' table.

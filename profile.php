@@ -118,6 +118,140 @@ $result = $stmt->get_result();
             text-align: center;
             border-radius: 8px;
         }
+
+        /* Mobile Responsive Styles */
+        @media screen and (max-width: 768px) {
+            body {
+                padding: 0;
+            }
+
+            .container {
+                margin: 20px 10px;
+                padding: 20px 15px;
+                border-radius: 8px;
+            }
+
+            h2 {
+                font-size: 1.5em;
+                margin-bottom: 15px;
+            }
+
+            h3 {
+                font-size: 1.2em;
+                margin-top: 20px;
+            }
+
+            .profile-info {
+                font-size: 1em;
+                margin-bottom: 20px;
+                word-break: break-word;
+            }
+
+            /* Hide table on mobile and show card layout */
+            .booking-table {
+                display: none;
+            }
+
+            /* Card layout for mobile */
+            .booking-card {
+                background: #fff;
+                border: 1px solid #ddd;
+                border-left: 4px solid #FF9933;
+                border-radius: 8px;
+                padding: 15px;
+                margin-bottom: 15px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+
+            .booking-card-row {
+                margin-bottom: 10px;
+                padding-bottom: 8px;
+                border-bottom: 1px solid #f0f0f0;
+            }
+
+            .booking-card-row:last-child {
+                border-bottom: none;
+                margin-bottom: 0;
+            }
+
+            .booking-card-label {
+                font-weight: 700;
+                color: #D35400;
+                display: block;
+                margin-bottom: 5px;
+                font-size: 0.9em;
+            }
+
+            .booking-card-value {
+                color: #333;
+                display: block;
+                font-size: 0.95em;
+            }
+
+            .booking-card-value a {
+                color: #D35400;
+                text-decoration: none;
+                font-weight: 700;
+                display: inline-block;
+                padding: 8px 15px;
+                background-color: #FFF8E1;
+                border-radius: 4px;
+                margin-top: 5px;
+            }
+
+            .booking-card-value a:hover {
+                background-color: #FFE082;
+            }
+
+            /* QR Code section responsive */
+            .qr-section {
+                padding: 15px !important;
+                margin: 15px 0 !important;
+            }
+
+            .qr-section h3 {
+                font-size: 1.1em;
+            }
+
+            .qr-section img {
+                max-width: 180px !important;
+            }
+
+            .qr-section p {
+                font-size: 0.9em;
+            }
+
+            .qr-section a {
+                font-size: 0.9em !important;
+                padding: 8px 15px !important;
+            }
+        }
+
+        @media screen and (max-width: 480px) {
+            .container {
+                margin: 10px 5px;
+                padding: 15px 10px;
+            }
+
+            h2 {
+                font-size: 1.3em;
+            }
+
+            .qr-section img {
+                max-width: 150px !important;
+            }
+        }
+
+        /* Show cards only on mobile */
+        .booking-cards {
+            display: none;
+        }
+
+        @media screen and (max-width: 768px) {
+            .booking-cards {
+                display: block;
+            }
+        }
     </style>
 </head>
 <body>
@@ -125,8 +259,39 @@ $result = $stmt->get_result();
         <h2>My Profile</h2>
         <p class="profile-info"><strong>Email:</strong> <?php echo htmlspecialchars($_SESSION['user_email']); ?></p>
         
+        <?php 
+        // Check if user has a QR code, if not generate it
+        $qr_path = 'assets/qrcodes/qr_user_' . $user_id . '.png';
+        
+        // Create QR code directory if it doesn't exist
+        if (!file_exists('assets/qrcodes')) {
+            mkdir('assets/qrcodes', 0777, true);
+        }
+        
+        // Generate QR code if it doesn't exist
+        if (!file_exists($qr_path)) {
+            require_once('lib/phpqrcode/qrlib.php');
+            
+            // URL for viewing all bookings - Use production server URL
+            $bookings_url = 'https://testing.sltdigitalweb.lk/perahera_tickets/user_bookings.php?user_id=' . $user_id;
+            
+            // Generate QR code
+            QRcode::png($bookings_url, $qr_path);
+        }
+        ?>
+        <div class="qr-section" style="text-align: center; margin: 20px 0; padding: 20px; background-color: #f9f9f9; border-radius: 8px;">
+            <h3 style="margin-top: 0;">Your QR Code</h3>
+            <p style="color: #666; margin-bottom: 15px;">Scan this QR code to view all your booking details</p>
+            <img src="<?php echo $qr_path; ?>" alt="QR Code" style="max-width: 200px; margin-bottom: 15px;">
+            <br>
+            <a href="<?php echo $qr_path; ?>" download="my_qr_code.png" style="display: inline-block; padding: 10px 20px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 4px; font-weight: bold;">
+                Download QR Code
+            </a>
+        </div>
+        
         <h3>My Bookings</h3>
         <?php if ($result->num_rows > 0): ?>
+            <!-- Desktop Table View -->
             <table class="booking-table">
                 <thead>
                     <tr>
@@ -138,7 +303,12 @@ $result = $stmt->get_result();
                     </tr>
                 </thead>
                 <tbody>
-                    <?php while($row = $result->fetch_assoc()): ?>
+                    <?php 
+                    // Store results in array for reuse
+                    $bookings = [];
+                    while($row = $result->fetch_assoc()): 
+                        $bookings[] = $row;
+                    ?>
                     <tr>
                         <td><?php echo htmlspecialchars($row['reference_number']); ?></td>
                         <td><?php echo htmlspecialchars($row['location_name']); ?></td>
@@ -149,6 +319,36 @@ $result = $stmt->get_result();
                     <?php endwhile; ?>
                 </tbody>
             </table>
+            
+            <!-- Mobile Card View -->
+            <div class="booking-cards">
+                <?php foreach($bookings as $booking): ?>
+                <div class="booking-card">
+                    <div class="booking-card-row">
+                        <span class="booking-card-label">Reference Number</span>
+                        <span class="booking-card-value"><?php echo htmlspecialchars($booking['reference_number']); ?></span>
+                    </div>
+                    <div class="booking-card-row">
+                        <span class="booking-card-label">Location</span>
+                        <span class="booking-card-value"><?php echo htmlspecialchars($booking['location_name']); ?></span>
+                    </div>
+                    <div class="booking-card-row">
+                        <span class="booking-card-label">Seat Number</span>
+                        <span class="booking-card-value"><?php echo htmlspecialchars($booking['seat_number']); ?></span>
+                    </div>
+                    <div class="booking-card-row">
+                        <span class="booking-card-label">Booking Date/Time</span>
+                        <span class="booking-card-value"><?php echo htmlspecialchars($booking['booking_time']); ?></span>
+                    </div>
+                    <div class="booking-card-row">
+                        <span class="booking-card-label">Ticket</span>
+                        <span class="booking-card-value">
+                            <a href="ticket.php?ref=<?php echo htmlspecialchars($booking['reference_number']); ?>" target="_blank">View Ticket</a>
+                        </span>
+                    </div>
+                </div>
+                <?php endforeach; ?>
+            </div>
         <?php else: ?>
             <p class="no-bookings">You have not booked any tickets yet.</p>
         <?php endif; ?>

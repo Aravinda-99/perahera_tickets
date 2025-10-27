@@ -1,7 +1,20 @@
 <?php
-session_start();
-session_unset();
+// Start session if not already started
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+// Destroy all session data
+$_SESSION = array();
+
+// Destroy the session cookie
+if (isset($_COOKIE[session_name()])) {
+    setcookie(session_name(), '', time()-42000, '/');
+}
+
 session_destroy();
+
+// Redirect to index page
 header("Location: index.php");
 exit();
 ?>
