@@ -40,6 +40,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 ?>
 
 <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -135,6 +136,69 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
         .signup-link a:hover {
             text-decoration: underline;
+        }
+
+        /* Mobile Responsive Styles */
+        @media screen and (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+            
+            .container {
+                margin: 20px 10px;
+                padding: 20px;
+                width: 100%;
+            }
+            
+            h2 {
+                font-size: 24px;
+                margin-bottom: 20px;
+            }
+            
+            .form-group {
+                margin-bottom: 15px;
+            }
+            
+            input[type="email"], 
+            input[type="password"] {
+                font-size: 16px; /* Prevent zoom on iOS */
+                padding: 10px;
+            }
+            
+            button {
+                padding: 12px;
+                font-size: 16px;
+                -webkit-tap-highlight-color: transparent;
+            }
+            
+            .error {
+                padding: 8px;
+                margin-bottom: 12px;
+                font-size: 14px;
+            }
+            
+            .signup-link {
+                margin-top: 15px;
+                font-size: 15px;
+            }
+            
+            .signup-link a {
+                display: inline-block;
+                padding: 5px 0;
+            }
+        }
+
+        /* Touch Device Optimizations */
+        @media (hover: none) {
+            button:hover {
+                transform: none;
+                box-shadow: none;
+            }
+            
+            button:active {
+                transform: translateY(1px);
+                background: linear-gradient(45deg, #D35400, #FF9933);
+            }
         }
     </style>
 </head>

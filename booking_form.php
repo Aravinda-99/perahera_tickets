@@ -16,8 +16,10 @@ if (!isset($_SESSION['user_id'])) {
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@400;700&display=swap" rel="stylesheet">
+    <!-- Sweet Alert 2 CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
     <style>
-      
+        /* Keep all existing desktop styles */
         .navbar { 
             font-family: 'Noto Sans Sinhala', sans-serif;
             background-color:rgba(255, 255, 255, 0.96);
@@ -36,45 +38,6 @@ if (!isset($_SESSION['user_id'])) {
             margin-bottom: 80px;
         }
         
-        /* Responsive navbar */
-        @media (max-width: 768px) {
-            .navbar {
-                padding: 10px 10px;
-                flex-wrap: wrap;
-            }
-            .navbar .logo-text {
-                font-size: 14px;
-                color: #333;
-            }
-            .navbar .nav-links a {
-                padding: 6px 6px;
-                font-size: 12px;
-                color: #333;
-            }
-            .navbar .nav-links {
-                gap: 2px;
-            }
-        }
-        
-        @media (max-width: 480px) {
-            .navbar {
-                padding: 8px 8px;
-            }
-            .navbar .logo-text {
-                font-size: 12px;
-                color: #333;
-            }
-            .navbar .nav-links a {
-                padding: 5px 4px;
-                font-size: 11px;
-                color: #333;
-            }
-            .navbar .logo-icon {
-                width: 30px;
-                height: 30px;
-                font-size: 16px;
-            }
-        }
         .navbar .logo {
             display: flex;
             align-items: center;
@@ -185,7 +148,6 @@ if (!isset($_SESSION['user_id'])) {
             box-shadow: 0 4px 10px rgba(211, 84, 0, 0.4);
         }
        
-        
         #seat-map-legend {
             display: flex;
             justify-content: center;
@@ -222,7 +184,6 @@ if (!isset($_SESSION['user_id'])) {
             overflow-y: auto;
         }
         
-        
         .seat {
             width: 35px;
             height: 30px;
@@ -243,7 +204,6 @@ if (!isset($_SESSION['user_id'])) {
             background-color: #f0f0f0;
             transform: scale(1.05);
         }
-
        
         .seat.available {
             background-color: white;
@@ -260,7 +220,6 @@ if (!isset($_SESSION['user_id'])) {
             color: white;
             border: 2px solid #2980B9;
         }
-
         
         .seat.counter {
             background-color: #F39C12; 
@@ -271,24 +230,174 @@ if (!isset($_SESSION['user_id'])) {
             color: white;
         }
 
+        /* Sweet Alert Custom Styles */
+        .custom-sweetalert {
+            font-family: 'Noto Sans Sinhala', sans-serif;
+        }
+
+        /* Mobile Responsive Styles */
+        @media screen and (max-width: 768px) {
+            .navbar {
+                padding: 10px;
+                margin-bottom: 40px;
+            }
+            
+            .navbar .logo-text {
+                font-size: 14px;
+            }
+            
+            .navbar .nav-links {
+                gap: 10px;
+            }
+            
+            .navbar .nav-links a {
+                padding: 6px;
+                font-size: 12px;
+            }
+            
+            .container {
+                margin: 20px 10px;
+                padding: 20px;
+            }
+            
+            h2 {
+                font-size: 20px;
+                margin-bottom: 20px;
+            }
+            
+            #seat-map-container {
+                grid-template-columns: repeat(10, 1fr);
+                gap: 3px;
+                padding: 10px;
+                max-height: 350px;
+            }
+            
+            .seat {
+                width: 28px;
+                height: 24px;
+                font-size: 10px;
+            }
+            
+            #seat-map-legend {
+                flex-wrap: wrap;
+                gap: 10px;
+                justify-content: space-around;
+            }
+            
+            button {
+                width: 100%;
+                max-width: 100%;
+                font-size: 14px;
+            }
+        }
+
+        @media screen and (max-width: 480px) {
+            .navbar {
+                padding: 8px;
+                margin-bottom: 20px;
+            }
+            
+            .navbar .logo-text {
+                font-size: 12px;
+            }
+            
+            .navbar .nav-links a {
+                padding: 4px;
+                font-size: 11px;
+            }
+            
+            .container {
+                margin: 10px;
+                padding: 15px;
+            }
+            
+            h2 {
+                font-size: 18px;
+                margin-bottom: 15px;
+            }
+            
+            .form-group {
+                margin-bottom: 15px;
+            }
+            
+            input[type="text"], 
+            select {
+                padding: 10px;
+                font-size: 14px;
+            }
+            
+            #seat-map-container {
+                grid-template-columns: repeat(8, 1fr);
+                gap: 2px;
+                padding: 8px;
+                max-height: 300px;
+            }
+            
+            .seat {
+                width: 24px;
+                height: 20px;
+                font-size: 9px;
+            }
+            
+            #seat-map-legend {
+                gap: 5px;
+                margin-bottom: 15px;
+            }
+            
+            .legend-item {
+                font-size: 12px;
+            }
+            
+            .seat-example {
+                width: 20px;
+                height: 16px;
+            }
+            
+            button {
+                padding: 10px;
+                font-size: 13px;
+            }
+            
+            #selected-seats-info {
+                padding: 10px;
+                margin-bottom: 10px;
+            }
+            
+            #selected-seats-list span {
+                font-size: 12px;
+                padding: 4px 8px;
+                margin: 1px;
+            }
+            
+            #total-price-info {
+                font-size: 14px;
+            }
+        }
+
+        /* Touch Device Optimizations */
+        @media (hover: none) {
+            .seat:hover:not(.booked):not(.selected) {
+                transform: none;
+            }
+            
+            .seat:active:not(.booked):not(.selected) {
+                background-color: #f0f0f0;
+                transform: scale(0.95);
+            }
+            
+            button:hover {
+                transform: none;
+            }
+            
+            button:active {
+                transform: translateY(1px);
+            }
+        }
+
     </style>
 </head>
 <body>
-    <div class="navbar">
-        <div class="logo">
-            <div class="logo-icon1"><img src="assets/logo/logonav.png" alt="Logo" style="width: 340px; height: 50px;"></div>
-        </div>
-        <div class="nav-links">
-            <a href="index.php" class="active">Home</a>
-            <?php if (isset($_SESSION['user_id'])): ?>
-                <a href="profile.php">My Profile</a>
-                <a href="logout.php">Logout</a>
-            <?php else: ?>
-                <a href="login.php">Login</a>
-                <a href="signup.php">Signup</a>
-            <?php endif; ?>
-        </div>
-    </div>
+<?php include 'header.php'; ?>
     
     <div class="container">
         <h2>Book Your Perahera Tickets</h2>
@@ -312,7 +421,7 @@ if (!isset($_SESSION['user_id'])) {
                             $total_seats = $row['total_seats'];
                             $image_url = $row['image_url'];
                             echo "<option value='" . $row['id'] . "' data-available='" . $available_seats . "' data-total='" . $total_seats . "' data-image='" . $image_url . "'>" . 
-                                 $row['name'] . " (" . $available_seats . "/" . $total_seats . " seats available)</option>";
+                                 $row['name'] . "</option>";
                         }
                     } else {
                         echo "<option value='' disabled>No locations found</option>";
@@ -339,8 +448,8 @@ if (!isset($_SESSION['user_id'])) {
                     <div class="legend-item"><div class="seat-example selected"></div> <span>Your Selection</span></div>
                 </div>
                 
-                <div id="selected-seats-info" style="display: none; background: #e8f5e8; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #27ae60;">
-                    <h4 style="margin: 0 0 10px 0; color: #27ae60;">Selected Seats:</h4>
+                <div id="selected-seats-info" style="display: none; background:rgb(223, 214, 183); padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid rgb(174, 111, 39);">
+                    <h4 style="margin: 0 0 10px 0; color:rgb(58, 58, 58);">Selected Seats:</h4>
                     <div id="selected-seats-list"></div>
                     <div id="total-price-info" style="margin-top: 10px; font-weight: bold; color: #2c3e50;"></div>
                 </div>
@@ -367,9 +476,12 @@ if (!isset($_SESSION['user_id'])) {
                 <small style="color: #666; font-size: 12px; display: block; margin-top: 5px;">Enter an agent code to get a discount on your ticket</small>
             </div>
             
-            <button type="submit" id="submit-button" disabled>Proceed to Payment</button>
+            <button type="submit" id="submit-button">Proceed to Payment</button>
         </form>
     </div>
+
+    <!-- Sweet Alert 2 JavaScript - Load before main script -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
         // DOM elements ටික අරගන්නවා
@@ -555,7 +667,7 @@ if (!isset($_SESSION['user_id'])) {
             
             // Update seats list
             selectedSeatsList.innerHTML = selectedSeats.map(seat => 
-                `<span style="background: #27ae60; color: white; padding: 5px 10px; border-radius: 15px; margin: 2px; display: inline-block;">${seat.number}</span>`
+                `<span style="background:rgb(174, 100, 39); color: white; padding: 5px 10px; border-radius: 15px; margin: 2px; display: inline-block;">${seat.number}</span>`
             ).join('');
             
             // Calculate total price
@@ -565,9 +677,7 @@ if (!isset($_SESSION['user_id'])) {
             const totalPrice = subtotal - discountValue;
             
             totalPriceInfo.innerHTML = `
-                <div>Seats: ${totalSeats} × $${ticketPrice.toFixed(2)} = $${subtotal.toFixed(2)}</div>
-                ${currentDiscount > 0 ? `<div style="color: #27ae60;">Discount (${currentDiscount}%): -$${discountValue.toFixed(2)}</div>` : ''}
-                <div style="font-size: 16px; color: #2c3e50;">Total: $${totalPrice.toFixed(2)}</div>
+                <div style="font-size: 16px; color: #2c3e50; font-weight: bold;">Total: $${totalPrice.toFixed(2)}</div>
             `;
             
             // Update hidden input with JSON data
@@ -576,7 +686,7 @@ if (!isset($_SESSION['user_id'])) {
         
         // Function to update submit button state
         function updateSubmitButton() {
-            submitButton.disabled = selectedSeats.length === 0;
+            // submitButton.disabled = selectedSeats.length === 0;
             if (selectedSeats.length > 0) {
                 submitButton.textContent = `Proceed to Payment (${selectedSeats.length} seat${selectedSeats.length > 1 ? 's' : ''})`;
             } else {
@@ -626,6 +736,24 @@ if (!isset($_SESSION['user_id'])) {
         
         // Update form submission to include discount info
         document.querySelector('form').addEventListener('submit', function(e) {
+            // Check if seats are selected
+            if (selectedSeats.length === 0) {
+                e.preventDefault(); // Prevent form submission
+                
+                // Show Sweet Alert warning
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Select Seats First!',
+                    text: 'Please select at least one seat before proceeding to payment.',
+                    confirmButtonText: 'OK',
+                    confirmButtonColor: '#D35400',
+                    customClass: {
+                        popup: 'custom-sweetalert'
+                    }
+                });
+                return false;
+            }
+            
             // Add hidden fields for discount info
             const discountInput = document.createElement('input');
             discountInput.type = 'hidden';
